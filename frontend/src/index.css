@@ -1886,7 +1886,8 @@ code {
 .family-panel {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100dvh;        /* dvh = viewport real em mobile (sem barra do browser) */
+  overflow: hidden;
   background: var(--bg-primary);
   color: var(--text-primary);
   transition: background 300ms ease, color 300ms ease;
@@ -1976,31 +1977,32 @@ code {
 
 .family-back-btn:hover { color: var(--text-primary); }
 
-/* Body: sidebar + main */
+/* Body: sidebar + main — preenche o espaço restante após o header */
 .family-body {
   display: flex;
   flex: 1;
+  min-height: 0;      /* essencial para flex + overflow funcionar */
   overflow: hidden;
-  min-height: 0;
 }
 
-/* Sidebar desktop */
+/* ── Sidebar desktop (≥ 1024px) ─────────────────────────── */
 .family-sidebar {
-  width: 180px;
+  width: 200px;
   flex-shrink: 0;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
+  padding: 20px 12px;
   gap: 4px;
+  overflow-y: auto;
 }
 
 .family-nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 11px 14px;
   border-radius: var(--radius-sm);
   background: transparent;
   border: none;
@@ -2011,36 +2013,35 @@ code {
   font-family: inherit;
   width: 100%;
   text-align: left;
+  white-space: nowrap;
 }
 
-.family-nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.family-nav-item:hover  { background: var(--bg-hover); color: var(--text-primary); }
 .family-nav-item.active {
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent-blue);
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Main */
+/* ── Área principal ──────────────────────────────────────── */
 .family-main {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 28px 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 0;
 }
 
-/* Tab bar mobile */
+/* ── Tab bar (mobile/tablet) — oculta por padrão ────────── */
 .family-tabbar {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  display: none;             /* aparece só no mobile via media query */
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
   z-index: 200;
-  padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  padding: 6px 0 env(safe-area-inset-bottom, 6px);
+  flex-shrink: 0;
 }
 
 .family-tabbar-item {
@@ -2054,7 +2055,7 @@ code {
   color: var(--text-muted);
   font-size: 11px;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px 4px;
   font-family: inherit;
   transition: var(--transition);
 }
@@ -2070,7 +2071,7 @@ code {
   align-items: center;
   gap: 20px;
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;   /* mais espaço no desktop */
 }
 
 /* Status bar */
@@ -2692,21 +2693,91 @@ code {
 }
 
 /* ============================================================
-   RESPONSIVIDADE — Mobile
+   RESPONSIVIDADE — 3 Breakpoints
+   Desktop ≥ 1024px  |  Tablet 640-1023px  |  Mobile < 640px
    ============================================================ */
-@media (max-width: 768px) {
-  .family-sidebar  { display: none; }
-  .family-tabbar   { display: flex; }
-  .family-main     { padding: 16px 16px 80px; }
 
-  .family-visualization {
-    width: 220px;
-    height: 220px;
+/* ── TABLET (640px – 1023px) ──────────────────────────────── */
+@media (max-width: 1023px) {
+  /* Sidebar vira barra compacta com apenas ícones */
+  .family-sidebar {
+    width: 68px;
+    padding: 16px 8px;
+    align-items: center;
   }
 
+  .family-nav-item {
+    justify-content: center;
+    padding: 12px;
+    gap: 0;
+  }
+
+  /* Esconde o texto, mostra só o ícone */
+  .family-nav-item span { display: none; }
+
+  .family-main { padding: 20px 24px; }
+
+  .family-visualization {
+    width: 240px;
+    height: 240px;
+  }
+
+  /* Esconde localização no header para economizar espaço */
   .family-header-location { display: none; }
   .family-header-sep      { display: none; }
+}
 
-  .viz-toggle-btn span.viz-toggle-label { display: none; }
+/* ── MOBILE (< 640px) ─────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Esconde sidebar lateral — navegação vai para a barra inferior */
+  .family-sidebar { display: none; }
+
+  /* Mostra tab bar no rodapé */
+  .family-tabbar  { display: flex; }
+
+  /* Main: padding reduzido + espaço para a tab bar (68px) */
+  .family-main {
+    padding: 16px 16px 0;
+    justify-content: flex-start;
+  }
+
+  /* Visualização menor para caber na tela */
+  .family-visualization {
+    width: 200px;
+    height: 200px;
+  }
+
+  /* Live: gaps menores */
+  .family-live { gap: 14px; }
+
+  /* Toggle de modos: mostra só emoji em telas muito pequenas */
+  .viz-toggle-btn .viz-toggle-label { display: none; }
   .viz-toggle-btn { padding: 10px 14px; }
+
+  /* Status text menor */
+  .family-status-text { font-size: 16px; }
+
+  /* Header compacto */
+  .family-header { padding: 0 14px; }
+  .family-back-btn span { display: none; }
+
+  /* Histórico: remove padding lateral */
+  .family-history,
+  .family-notifications,
+  .family-settings-tab { max-width: 100%; }
+
+  /* Heatmap menor */
+  .family-heatmap { height: 40px; }
+}
+
+/* ── TELAS MUITO PEQUENAS (< 380px) ──────────────────────── */
+@media (max-width: 379px) {
+  .family-visualization {
+    width: 170px;
+    height: 170px;
+  }
+
+  .family-status-text { font-size: 14px; }
+  .viz-toggle { gap: 4px; padding: 4px; }
+  .viz-toggle-btn { padding: 8px 10px; }
 }
