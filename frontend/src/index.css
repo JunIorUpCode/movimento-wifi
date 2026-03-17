@@ -2031,6 +2031,7 @@ code {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;   /* centraliza verticalmente no desktop */
   min-height: 0;
 }
 
@@ -2071,7 +2072,8 @@ code {
   align-items: center;
   gap: 20px;
   width: 100%;
-  max-width: 560px;   /* mais espaço no desktop */
+  max-width: 560px;
+  /* no mobile começa do topo; no desktop fica centrado via justify-content no pai */
 }
 
 /* Status bar */
@@ -2199,8 +2201,8 @@ code {
    VISUALIZAÇÕES — Pulso
    ============================================================ */
 .family-visualization {
-  width: 260px;
-  height: 260px;
+  width: 300px;
+  height: 300px;
   flex-shrink: 0;
 }
 
@@ -2715,7 +2717,10 @@ code {
   /* Esconde o texto, mostra só o ícone */
   .family-nav-item span { display: none; }
 
-  .family-main { padding: 20px 24px; }
+  .family-main {
+    padding: 20px 24px;
+    justify-content: flex-start;  /* tablet: scroll natural, não centraliza */
+  }
 
   .family-visualization {
     width: 240px;
@@ -2735,10 +2740,11 @@ code {
   /* Mostra tab bar no rodapé */
   .family-tabbar  { display: flex; }
 
-  /* Main: padding reduzido + espaço para a tab bar (68px) */
+  /* Mobile: conteúdo começa do topo (não centraliza — tem scroll) */
   .family-main {
     padding: 16px 16px 0;
     justify-content: flex-start;
+    align-items: center;
   }
 
   /* Visualização menor para caber na tela */
