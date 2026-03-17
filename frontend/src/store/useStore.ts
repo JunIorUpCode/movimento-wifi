@@ -21,7 +21,12 @@ export type PageId =
   | 'zones'
   | 'ml'
   | 'replay'
-  | 'settings';
+  | 'pushnotifications'
+  | 'settings'
+  | 'family';
+
+export type FamilyViewMode = 'pulso' | 'presenca' | 'radar';
+export type Theme = 'dark' | 'light';
 
 interface AppState {
   // Status
@@ -58,9 +63,15 @@ interface AppState {
   // Notificações push no browser
   pushEnabled: boolean;
 
+  // Painel Família
+  familyViewMode: FamilyViewMode;
+  theme: Theme;
+
   // Actions
   setMonitoring: (v: boolean) => void;
   setActivePage: (p: PageId) => void;
+  setFamilyViewMode: (m: FamilyViewMode) => void;
+  setTheme: (t: Theme) => void;
   setSimulationMode: (m: SimulationMode) => void;
   setConfig: (c: AppConfig) => void;
   setEvents: (e: EventRecord[]) => void;
@@ -105,9 +116,20 @@ export const useStore = create<AppState>((set) => ({
   calibrationProgress: null,
   recentAnomalies: [],
   pushEnabled: false,
+  familyViewMode: (localStorage.getItem('familyViewMode') as FamilyViewMode) || 'pulso',
+  theme: (localStorage.getItem('theme') as Theme) || 'dark',
 
   setMonitoring: (v) => set({ isMonitoring: v }),
   setActivePage: (p) => set({ activePage: p }),
+  setFamilyViewMode: (m) => {
+    localStorage.setItem('familyViewMode', m);
+    set({ familyViewMode: m });
+  },
+  setTheme: (t) => {
+    localStorage.setItem('theme', t);
+    document.documentElement.setAttribute('data-theme', t);
+    set({ theme: t });
+  },
   setSimulationMode: (m) => set({ simulationMode: m }),
   setConfig: (c) => set({ config: c }),
   setEvents: (e) => set({ events: e }),

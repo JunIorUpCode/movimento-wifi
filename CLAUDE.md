@@ -1,6 +1,6 @@
 # CLAUDE.md — WiFiSense: Painel de Controle do Projeto
 
-> Atualizado em: 17/03/2026 — **SISTEMA PRONTO PARA PRODUÇÃO (90%).** 131 tarefas + CI/CD + SSL + migrations + E2E (36 testes pipeline) + deploy.sh one-command. Falta: DNS real + segredos de produção preenchidos.
+> Atualizado em: 17/03/2026 — **SISTEMA PRONTO PARA PRODUÇÃO (90%) + Painel Família implementado.** 131 tarefas SaaS + Painel Família (3 modos de visualização, dark/light mode, mobile-first). Falta: DNS real + segredos de produção preenchidos.
 >
 > **Legenda:** ✅ Feito e funcional | ⚠️ Feito mas com problemas | ⬜ Pendente | 🔴 Bloqueador crítico
 
@@ -380,6 +380,24 @@ Pronto para produção:           █████████░  90%   ← CI/C
 - [x] **20.1-20.4** ✅ — Instaladores: `wifisense.nsi` (NSIS/Windows .exe), `build_deb.sh` (.deb Ubuntu/Debian), `wifisense.spec` + `build_rpm.sh` (.rpm RHEL/Fedora), `setup_wifisense.sh` (Raspberry Pi arm64/armv7), `agent/updater.py` (auto-update com rollback)
 - [x] **21.1-21.4** ✅ — Backup PostgreSQL: `backup_postgres.sh` (pg_dump+gzip+sha256, retenção 7d), `restore_postgres.sh` (com verificação de integridade), `setup_replication.sh` (streaming hot standby primary/standby), `install_backup_cron.sh` (cron diário 02:00)
 - [x] **22** ✅ — Checkpoint Final SaaS — toda infraestrutura pós-MVP concluída
+
+### ✅ FASE 6 — Painel Família (Interface do Usuário Final)
+
+- [x] **PF.1** ✅ — `store/useStore.ts`: `PageId` agora inclui `'family'` e `'pushnotifications'`; novos estados `familyViewMode: 'pulso'|'presenca'|'radar'` e `theme: 'dark'|'light'` com persistência em `localStorage`
+- [x] **PF.2** ✅ — `components/family/PulsoView.tsx`: Modo "Pulso" — 5 ícones SVG animados por estado (casa vazia, sentado, caminhando, caindo, deitado) com animações CSS
+- [x] **PF.3** ✅ — `components/family/PresencaView.tsx`: Modo "Presença" — silhueta SVG com 5 poses + gradiente radial que muda de cor por estado
+- [x] **PF.4** ✅ — `components/family/RadarView.tsx`: Modo "Radar" — blob de calor animado com círculos concêntricos e scan line giratório
+- [x] **PF.5** ✅ — `components/family/VisualizationToggle.tsx`: Seletor [🔵 Pulso] [🚶 Presença] [📡 Radar] com estado persistido
+- [x] **PF.6** ✅ — `components/family/FamilyHistory.tsx`: Histórico em linguagem humana ("Pessoa em repouso", "Queda detectada") com timeline e tempo relativo
+- [x] **PF.7** ✅ — `components/family/FamilyNotifications.tsx`: Config Telegram (configurado/não) + WhatsApp "em breve" + teste de notificação integrado
+- [x] **PF.8** ✅ — `pages/FamilyPanel.tsx`: Layout completo — header próprio + sidebar desktop + tab bar mobile + abas (Ao Vivo, Histórico, Notificações, Config) + mini heatmap do dia
+- [x] **PF.9** ✅ — `App.tsx`: Rota `'family'` renderiza `FamilyPanel` sem Header/Sidebar admin; tema aplicado via `data-theme` no `<html>`
+- [x] **PF.10** ✅ — `Sidebar.tsx`: Botão "👨‍👩‍👧 Painel Família" no rodapé da sidebar admin
+- [x] **PF.11** ✅ — `index.css`: Tema light (`[data-theme="light"]`), todos os estilos do Painel Família, responsividade mobile (tab bar inferior estilo iOS, `max-width: 768px`)
+
+**Arquivos criados/modificados no Painel Família:**
+- Novos: `src/components/family/` (5 arquivos) + `src/pages/FamilyPanel.tsx`
+- Modificados: `src/store/useStore.ts`, `src/App.tsx`, `src/components/Sidebar.tsx`, `src/index.css`
 
 ---
 

@@ -11,6 +11,7 @@ import {
   Brain,
   BellRing,
   Play,
+  Users,
 } from 'lucide-react';
 import { useStore, type PageId } from '../store/useStore';
 
@@ -46,6 +47,14 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="sidebar-footer">
+        <button
+          className="sidebar-family-btn"
+          onClick={() => setActivePage('family')}
+          title="Abrir Painel Família"
+        >
+          <Users size={16} />
+          <span>Painel Família</span>
+        </button>
         <span className="sidebar-version">v1.0.0</span>
       </div>
     </aside>

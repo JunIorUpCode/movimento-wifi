@@ -1,5 +1,6 @@
 /* App.tsx — Layout principal com Sidebar, Header e roteamento por estado */
 
+import { useEffect } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
@@ -12,28 +13,40 @@ import { Zones } from './pages/Zones';
 import { MLCollection } from './pages/MLCollection';
 import { PushNotifications } from './pages/PushNotifications';
 import { Replay } from './pages/Replay';
+import { FamilyPanel } from './pages/FamilyPanel';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useStore } from './store/useStore';
 
 function App() {
   const activePage = useStore((s) => s.activePage);
+  const theme = useStore((s) => s.theme);
 
   // Conecta WebSocket globalmente
   useWebSocket();
 
+  // Aplica tema salvo no localStorage ao iniciar
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  // Painel Família: layout próprio, sem Header/Sidebar admin
+  if (activePage === 'family') {
+    return <FamilyPanel />;
+  }
+
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard':       return <Dashboard />;
-      case 'history':         return <History />;
-      case 'calibration':     return <Calibration />;
-      case 'statistics':      return <Statistics />;
-      case 'notifications':   return <Notifications />;
-      case 'zones':           return <Zones />;
-      case 'ml':              return <MLCollection />;
+      case 'dashboard':         return <Dashboard />;
+      case 'history':           return <History />;
+      case 'calibration':       return <Calibration />;
+      case 'statistics':        return <Statistics />;
+      case 'notifications':     return <Notifications />;
+      case 'zones':             return <Zones />;
+      case 'ml':                return <MLCollection />;
       case 'pushnotifications': return <PushNotifications />;
-      case 'replay':          return <Replay />;
-      case 'settings':        return <Settings />;
-      default:                return <Dashboard />;
+      case 'replay':            return <Replay />;
+      case 'settings':          return <Settings />;
+      default:                  return <Dashboard />;
     }
   };
 
