@@ -1,0 +1,102 @@
+# WiFiSense SaaS Platform - Dependências Consolidadas
+# Versão: 1.0.0
+# Python: 3.11+
+
+# ============================================================================
+# CORE - Framework Web e API
+# ============================================================================
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+websockets==13.1
+
+# ============================================================================
+# DATABASE - ORM e Drivers
+# ============================================================================
+sqlalchemy==2.0.35
+alembic==1.13.1
+# NOTA: asyncpg e psycopg2-binary removidos - usar Docker para PostgreSQL
+# asyncpg==0.29.0  # REQUER Visual C++ Build Tools no Windows
+# psycopg2-binary==2.9.9  # REQUER Visual C++ Build Tools no Windows
+
+# ============================================================================
+# CACHE E FILAS - Redis e RabbitMQ
+# ============================================================================
+redis==5.0.0
+aio-pika==9.4.0
+
+# ============================================================================
+# AUTENTICAÇÃO E SEGURANÇA
+# ============================================================================
+pyjwt==2.8.0
+python-jose[cryptography]==3.3.0
+bcrypt==4.1.1
+passlib[bcrypt]==1.7.4
+cryptography==46.0.3
+
+# ============================================================================
+# VALIDAÇÃO E CONFIGURAÇÃO
+# ============================================================================
+pydantic==2.9.0
+pydantic-settings==2.5.0
+python-dotenv==1.0.0
+pyyaml==6.0.3
+
+# ============================================================================
+# NOTIFICAÇÕES
+# ============================================================================
+python-telegram-bot==21.0
+sendgrid==6.11.0
+httpx==0.27.0
+requests==2.32.3
+
+# ============================================================================
+# PAGAMENTOS
+# ============================================================================
+stripe==11.1.1
+
+# ============================================================================
+# AGENTE LOCAL
+# ============================================================================
+psutil==6.1.1
+aiosqlite==0.20.0
+
+# ============================================================================
+# LOGGING E MONITORAMENTO
+# ============================================================================
+python-json-logger==2.0.7
+structlog==24.4.0
+prometheus-client==0.21.0
+
+# ============================================================================
+# TESTES
+# ============================================================================
+pytest==8.3.4
+pytest-asyncio==0.24.0
+hypothesis==6.122.3
+pytest-cov==6.0.0
+
+# ============================================================================
+# UTILITÁRIOS
+# ============================================================================
+python-dateutil==2.9.0
+pytz==2024.2
+click==8.2.1
+
+# ============================================================================
+# NOTAS DE INSTALAÇÃO
+# ============================================================================
+# 
+# WINDOWS: asyncpg e psycopg2-binary foram removidos porque requerem
+# Visual C++ Build Tools. Use Docker para PostgreSQL:
+#   docker-compose up postgres
+#
+# Para instalar todas as dependências:
+#   pip install -r requirements.txt
+#
+# Para instalar apenas dependências básicas (sem testes):
+#   pip install -r requirements-minimal.txt
+#
+# Para desenvolvimento com Docker:
+#   docker-compose up
+#

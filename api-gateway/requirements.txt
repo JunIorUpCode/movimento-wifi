@@ -1,0 +1,20 @@
+# ============================================================================
+# WiFiSense SaaS - API Gateway Requirements
+# ============================================================================
+# Dependências para o serviço de health check
+# ============================================================================
+
+# FastAPI para API REST
+fastapi==0.104.1
+
+# Uvicorn para servidor ASGI
+uvicorn[standard]==0.24.0
+
+# aiohttp para requisições HTTP assíncronas
+aiohttp==3.9.1
+
+# Pydantic para validação de dados
+pydantic==2.5.0
+
+# Python-dotenv para variáveis de ambiente
+python-dotenv==1.0.0

@@ -1,0 +1,5 @@
+# Dependências mínimas para testes unitários (sem compilação C++)
+pyjwt==2.8.0
+bcrypt==4.1.1
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0

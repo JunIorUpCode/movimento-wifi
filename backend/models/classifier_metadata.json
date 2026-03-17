@@ -1,0 +1,38 @@
+{
+  "model_name": "classifier",
+  "model_type": "RandomForestClassifier",
+  "n_estimators": 50,
+  "max_depth": 10,
+  "n_features": 18,
+  "n_classes": 5,
+  "classes": [
+    "fall_suspected",
+    "no_presence",
+    "presence_moving",
+    "presence_still",
+    "prolonged_inactivity"
+  ],
+  "accuracy": 0.1919191919191919,
+  "feature_importances": {
+    "rssi_norm_mean": 0.05588435716857923,
+    "rssi_smooth_mean": 0.050100297242927236,
+    "roc_mean": 0.05953043878998333,
+    "energy_mean": 0.051704062800706704,
+    "variance_mean": 0.04798882029525174,
+    "csi_mean_mean": 0.05355162370924888,
+    "csi_std_mean": 0.0444645260030965,
+    "instability_mean": 0.0545579844591908,
+    "raw_rssi_mean": 0.06293421926168113,
+    "rssi_norm_std": 0.05484861357376035,
+    "rssi_smooth_std": 0.06488754394437238,
+    "roc_std": 0.05247064466041812,
+    "energy_std": 0.0521183089927162,
+    "variance_std": 0.06174124392455758,
+    "csi_mean_std": 0.04939727790172946,
+    "csi_std_std": 0.047869733641364313,
+    "instability_std": 0.06756694530225012,
+    "raw_rssi_std": 0.06838335832816606
+  },
+  "trained_at": "2026-03-14T14:15:18.240136",
+  "training_samples": 5
+}

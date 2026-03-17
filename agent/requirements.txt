@@ -1,0 +1,14 @@
+# WiFiSense Agent - Dependências
+
+# HTTP e WebSocket
+aiohttp>=3.9.0
+websockets>=12.0
+
+# Criptografia
+cryptography>=41.0.0
+
+# Monitoramento de sistema
+psutil>=5.9.0
+
+# Processamento de dados (reutiliza do backend)
+# numpy>=1.24.0  # Já incluído no backend

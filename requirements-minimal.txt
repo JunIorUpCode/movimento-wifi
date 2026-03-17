@@ -1,0 +1,52 @@
+# WiFiSense SaaS Platform - Dependências Mínimas (sem testes)
+# Use este arquivo para instalação rápida em desenvolvimento
+
+# Core
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+websockets==13.1
+
+# Database
+sqlalchemy==2.0.35
+alembic==1.13.1
+
+# Cache e Filas
+redis==5.0.0
+aio-pika==9.4.0
+
+# Autenticação
+pyjwt==2.8.0
+python-jose[cryptography]==3.3.0
+bcrypt==4.1.1
+passlib[bcrypt]==1.7.4
+cryptography==46.0.3
+
+# Validação
+pydantic==2.9.0
+pydantic-settings==2.5.0
+python-dotenv==1.0.0
+pyyaml==6.0.3
+
+# Notificações
+python-telegram-bot==21.0
+sendgrid==6.11.0
+httpx==0.27.0
+requests==2.32.3
+
+# Pagamentos
+stripe==11.1.1
+
+# Agente Local
+psutil==6.1.1
+aiosqlite==0.20.0
+
+# Logging
+python-json-logger==2.0.7
+structlog==24.4.0
+prometheus-client==0.21.0
+
+# Utilitários
+python-dateutil==2.9.0
+pytz==2024.2
+click==8.2.1

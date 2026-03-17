@@ -1,0 +1,381 @@
+version: '3.8'
+
+# WiFiSense SaaS Multi-Tenant Platform
+# Docker Compose para ambiente de desenvolvimento local
+
+services:
+  # PostgreSQL - Banco de dados principal com schemas isolados
+  postgres:
+    image: postgres:15-alpine
+    container_name: wifisense-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: NovaSenhaForte123!
+      POSTGRES_DB: wifi_movimento
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=pt_BR.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wifisense-network
+
+  # Redis - Cache e armazenamento de sessões
+  redis:
+    image: redis:7-alpine
+    container_name: wifisense-redis
+    command: redis-server --requirepass wifisense_redis_password
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wifisense-network
+
+  # RabbitMQ - Message queue para processamento assíncrono
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: wifisense-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: wifisense
+      RABBITMQ_DEFAULT_PASS: wifisense_password
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wifisense-network
+
+  # Auth Service - Autenticação e autorização
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: wifisense-auth-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: wifisense
+      RABBITMQ_PASSWORD: wifisense_password
+      JWT_SECRET_KEY: dev-secret-key-change-in-production
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Tenant Service - Gerenciamento de tenants
+  tenant-service:
+    build:
+      context: .
+      dockerfile: services/tenant-service/Dockerfile
+    container_name: wifisense-tenant-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/tenant-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Device Service - Gerenciamento de dispositivos
+  device-service:
+    build:
+      context: .
+      dockerfile: services/device-service/Dockerfile
+    container_name: wifisense-device-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: wifisense
+      RABBITMQ_PASSWORD: wifisense_password
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/device-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # License Service - Gerenciamento de licenças
+  license-service:
+    build:
+      context: .
+      dockerfile: services/license-service/Dockerfile
+    container_name: wifisense-license-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8004:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/license-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Event Service - Processamento de eventos
+  event-service:
+    build:
+      context: .
+      dockerfile: services/event-service/Dockerfile
+    container_name: wifisense-event-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: wifisense
+      RABBITMQ_PASSWORD: wifisense_password
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8005:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/event-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Notification Service - Notificações multi-canal
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: wifisense-notification-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: wifisense
+      RABBITMQ_PASSWORD: wifisense_password
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8006:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/notification-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Billing Service - Faturamento e pagamentos
+  billing-service:
+    build:
+      context: .
+      dockerfile: services/billing-service/Dockerfile
+    container_name: wifisense-billing-service
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: wifisense
+      DATABASE_PASSWORD: wifisense_password
+      DATABASE_NAME: wifisense_saas
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: wifisense_redis_password
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: wifisense
+      RABBITMQ_PASSWORD: wifisense_password
+      LOG_LEVEL: INFO
+      DEBUG: "false"
+    ports:
+      - "8007:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./services/billing-service:/app
+      - ./shared:/shared
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # API Gateway - Gateway unificado com Nginx
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: wifisense-api-gateway
+    ports:
+      - "80:80"     # HTTP (redireciona para HTTPS)
+      - "443:443"   # HTTPS
+    depends_on:
+      - auth-service
+      - tenant-service
+      - device-service
+      - license-service
+      - event-service
+      - notification-service
+      - billing-service
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./api-gateway/proxy_params.conf:/etc/nginx/proxy_params.conf:ro
+      - gateway_logs:/var/log/nginx
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Health Check Service - Verifica status de todos os microserviços
+  health-check:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile.healthcheck
+    container_name: wifisense-health-check
+    environment:
+      LOG_LEVEL: INFO
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - tenant-service
+      - device-service
+      - license-service
+      - event-service
+      - notification-service
+      - billing-service
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+networks:
+  wifisense-network:
+    driver: bridge
+    name: wifisense-network
+
+volumes:
+  postgres_data:
+    name: wifisense-postgres-data
+  redis_data:
+    name: wifisense-redis-data
+  rabbitmq_data:
+    name: wifisense-rabbitmq-data
+  gateway_logs:
+    name: wifisense-gateway-logs
