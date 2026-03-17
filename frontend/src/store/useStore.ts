@@ -8,7 +8,20 @@ import type {
   EventType,
   LiveUpdate,
   SimulationMode,
+  WsCalibrationProgress,
+  WsAnomalyDetected,
 } from '../types';
+
+export type PageId =
+  | 'dashboard'
+  | 'history'
+  | 'calibration'
+  | 'statistics'
+  | 'notifications'
+  | 'zones'
+  | 'ml'
+  | 'replay'
+  | 'settings';
 
 interface AppState {
   // Status
@@ -34,16 +47,28 @@ interface AppState {
   config: AppConfig;
 
   // Navegação
-  activePage: 'dashboard' | 'history' | 'settings';
+  activePage: PageId;
+
+  // Calibração (WebSocket)
+  calibrationProgress: WsCalibrationProgress['data'] | null;
+
+  // Anomalias recebidas via WS
+  recentAnomalies: WsAnomalyDetected['data'][];
+
+  // Notificações push no browser
+  pushEnabled: boolean;
 
   // Actions
   setMonitoring: (v: boolean) => void;
-  setActivePage: (p: 'dashboard' | 'history' | 'settings') => void;
+  setActivePage: (p: PageId) => void;
   setSimulationMode: (m: SimulationMode) => void;
   setConfig: (c: AppConfig) => void;
   setEvents: (e: EventRecord[]) => void;
   pushLiveUpdate: (u: LiveUpdate) => void;
   dismissAlert: () => void;
+  setCalibrationProgress: (p: WsCalibrationProgress['data'] | null) => void;
+  pushAnomaly: (a: WsAnomalyDetected['data']) => void;
+  setPushEnabled: (v: boolean) => void;
   setStatus: (data: {
     is_monitoring: boolean;
     current_event: EventType;
@@ -55,6 +80,7 @@ interface AppState {
 }
 
 const MAX_CHART_POINTS = 60;
+const MAX_ANOMALIES = 20;
 
 export const useStore = create<AppState>((set) => ({
   isMonitoring: false,
@@ -76,6 +102,9 @@ export const useStore = create<AppState>((set) => ({
     sampling_interval: 0.5,
   },
   activePage: 'dashboard',
+  calibrationProgress: null,
+  recentAnomalies: [],
+  pushEnabled: false,
 
   setMonitoring: (v) => set({ isMonitoring: v }),
   setActivePage: (p) => set({ activePage: p }),
@@ -83,6 +112,12 @@ export const useStore = create<AppState>((set) => ({
   setConfig: (c) => set({ config: c }),
   setEvents: (e) => set({ events: e }),
   dismissAlert: () => set({ alertVisible: false, activeAlert: null }),
+  setCalibrationProgress: (p) => set({ calibrationProgress: p }),
+  setPushEnabled: (v) => set({ pushEnabled: v }),
+  pushAnomaly: (a) =>
+    set((state) => ({
+      recentAnomalies: [a, ...state.recentAnomalies].slice(0, MAX_ANOMALIES),
+    })),
 
   setStatus: (data) =>
     set({

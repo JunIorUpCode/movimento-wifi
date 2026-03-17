@@ -1,0 +1,27 @@
+[Unit]
+Description=WiFiSense Local — Detecção de presença via Wi-Fi
+Documentation=https://wifisense.com/docs
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wifisense
+Group=wifisense
+WorkingDirectory=/opt/wifisense
+ExecStart=/usr/bin/python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wifisense
+
+# Segurança
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/wifisense/data /opt/wifisense/logs /opt/wifisense/models
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

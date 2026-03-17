@@ -91,8 +91,27 @@ async def get_config():
 
 @router.post("/config", response_model=ConfigOut)
 async def update_config(data: ConfigIn):
-    """Atualiza configuração do sistema."""
-    return config_service.update(data)
+    """Atualiza configuração do sistema e troca provider se necessário."""
+    updated = config_service.update(data)
+    if data.active_provider:
+        try:
+            from app.capture.provider_factory import ProviderFactory
+            new_provider = ProviderFactory.create_provider(
+                force_provider=data.active_provider if data.active_provider != 'mock' else None,
+                force_mock=(data.active_provider == 'mock'),
+            )
+            monitor_service._provider = new_provider
+        except Exception as exc:
+            import logging as _log
+            _log.getLogger(__name__).warning(f"Nao foi possivel trocar provider: {exc}")
+    return updated
+
+
+@router.get("/providers")
+async def get_providers():
+    """Retorna disponibilidade dos providers de captura de sinal Wi-Fi."""
+    from app.capture.provider_factory import ProviderFactory
+    return ProviderFactory.get_available_providers()
 
 
 @router.post("/simulation/mode")
@@ -178,9 +197,23 @@ async def activate_ml_model(name: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(model)
     
-    # TODO: Notificar MonitorService para recarregar detector
-    # Isso será implementado quando integrarmos com MLDetector
-    
+    # Valida o nome do modelo antes de recarregar (prevenção de path traversal)
+    import re
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', model.name):
+        raise HTTPException(status_code=400, detail="Nome de modelo inválido")
+
+    # Passa apenas o nome do arquivo — MLDetector resolve o caminho completo de forma segura
+    model_file = f"{model.name}.pkl"
+    reload_result = await monitor_service.reload_detector(model_file)
+    if not reload_result["success"]:
+        # Não falha a requisição — modelo está ativo no banco de dados.
+        # O runtime usará o novo modelo no próximo restart do serviço.
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            f"Modelo '{model.name}' ativado no banco mas não recarregado no runtime: "
+            f"{reload_result['message']}"
+        )
+
     return {
         "status": "activated",
         "model": ModelInfoResponse.model_validate(model)
@@ -327,6 +360,95 @@ async def update_notification_config(config_request: NotificationConfigRequest):
         webhook_configured=bool(new_config.webhook_urls),
         webhook_url_count=len(new_config.webhook_urls)
     )
+
+
+# --- Power Save ---
+
+@router.post("/power-save/enable")
+async def enable_power_save():
+    """
+    Ativa modo de economia de energia.
+
+    Aumenta intervalo de amostragem para 5 s e eleva o limiar de sensibilidade.
+    Use quando não se espera atividade por períodos prolongados.
+    """
+    return monitor_service.enable_power_save()
+
+
+@router.post("/power-save/disable")
+async def disable_power_save():
+    """Desativa o modo de economia de energia, restaurando a configuração anterior."""
+    return monitor_service.disable_power_save()
+
+
+@router.get("/power-save/status")
+async def get_power_save_status():
+    """Retorna se o modo de economia de energia está ativo."""
+    return {
+        "active": monitor_service.power_save_active,
+        "sampling_interval": config_service.config.sampling_interval,
+    }
+
+
+# --- Simulation Info ---
+
+@router.get("/simulation/modes")
+async def list_simulation_modes():
+    """Lista todos os modos de simulação disponíveis."""
+    return {
+        "modes": [
+            {"value": "empty", "description": "Ambiente vazio (sem pessoas)"},
+            {"value": "still", "description": "Pessoa parada"},
+            {"value": "moving", "description": "Pessoa em movimento"},
+            {"value": "fall", "description": "Queda detectada"},
+            {"value": "post_fall_inactivity", "description": "Inatividade prolongada após queda"},
+            {"value": "random", "description": "Cicla automaticamente entre os modos"},
+        ],
+        "current_mode": monitor_service.simulation_mode,
+    }
+
+
+# --- Config Profiles ---
+
+@router.get("/config/profiles")
+async def list_config_profiles():
+    """Lista todos os perfis de configuração salvos."""
+    names = config_service.list_profiles()
+    return {"profiles": names}
+
+
+@router.get("/config/profiles/{name}", response_model=ConfigOut)
+async def get_config_profile(name: str):
+    """Retorna um perfil de configuração sem aplicá-lo."""
+    try:
+        return config_service.get_profile(name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.post("/config/profiles/{name}", response_model=ConfigOut)
+async def save_config_profile(name: str):
+    """Salva a configuração ativa como perfil nomeado."""
+    config_service.save_profile(name)
+    return config_service.config
+
+
+@router.post("/config/profiles/{name}/activate", response_model=ConfigOut)
+async def activate_config_profile(name: str):
+    """Carrega e aplica um perfil de configuração como ativo."""
+    try:
+        return config_service.load_profile(name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.delete("/config/profiles/{name}", status_code=204)
+async def delete_config_profile(name: str):
+    """Remove um perfil de configuração."""
+    try:
+        config_service.delete_profile(name)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.post("/notifications/test")

@@ -1,0 +1,80 @@
+# Regras de alerta do WiFiSense para Prometheus
+groups:
+  - name: wifisense_services
+    interval: 30s
+    rules:
+
+      # Serviço fora do ar por mais de 1 minuto
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Serviço {{ $labels.job }} está fora do ar"
+          description: "O serviço {{ $labels.job }} não está respondendo há mais de 1 minuto."
+
+      # Latência HTTP alta (p95 > 500ms)
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latência alta em {{ $labels.job }}"
+          description: "P95 de latência está em {{ $value | humanizeDuration }} (limite: 500ms)."
+
+      # Taxa de erro HTTP > 5%
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m])
+          / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de erro alta em {{ $labels.job }}"
+          description: "{{ $value | humanizePercentage }} das requisições estão retornando 5xx."
+
+  - name: wifisense_infrastructure
+    rules:
+
+      # PostgreSQL fora do ar
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL está fora do ar"
+          description: "O banco de dados PostgreSQL não está acessível."
+
+      # Redis fora do ar
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis está fora do ar"
+          description: "O Redis não está acessível."
+
+      # Memória do Redis > 90%
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis com memória alta"
+          description: "Redis usando {{ $value | humanizePercentage }} da memória máxima."
+
+      # Fila RabbitMQ acumulando
+      - alert: RabbitMQQueueGrowing
+        expr: rabbitmq_queue_messages > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fila RabbitMQ acumulando mensagens"
+          description: "A fila {{ $labels.queue }} tem {{ $value }} mensagens pendentes."

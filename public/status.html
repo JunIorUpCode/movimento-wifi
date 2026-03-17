@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WiFiSense — Status dos Serviços</title>
+  <style>
+    :root {
+      --green:  #22c55e;
+      --yellow: #eab308;
+      --red:    #ef4444;
+      --gray:   #6b7280;
+      --bg:     #0f172a;
+      --card:   #1e293b;
+      --border: #334155;
+      --text:   #f1f5f9;
+      --muted:  #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; padding: 2rem 1rem;
+    }
+    .container { max-width: 760px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 { font-size: 1.75rem; font-weight: 700; }
+    header p  { color: var(--muted); margin-top: 0.4rem; }
+    .overall {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 0.75rem; padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .overall-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .overall-text { font-size: 1rem; font-weight: 600; }
+    .section-title {
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 0.75rem; padding-left: 0.25rem;
+    }
+    .services { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem; }
+    .service {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 0.5rem; padding: 0.85rem 1.25rem;
+    }
+    .service-name { font-size: 0.9rem; font-weight: 500; }
+    .service-meta { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.78rem; font-weight: 600; border-radius: 999px;
+      padding: 0.2rem 0.65rem;
+    }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .operational { background: rgba(34,197,94,.15); color: var(--green); }
+    .operational .badge-dot { background: var(--green); }
+    .degraded    { background: rgba(234,179,8,.15);  color: var(--yellow); }
+    .degraded    .badge-dot { background: var(--yellow); }
+    .outage      { background: rgba(239,68,68,.15);  color: var(--red); }
+    .outage      .badge-dot { background: var(--red); }
+    .unknown     { background: rgba(107,114,128,.15);color: var(--gray); }
+    .unknown     .badge-dot { background: var(--gray); }
+    .uptime-bar-wrap { margin-bottom: 2.5rem; }
+    .uptime-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.6rem; }
+    .uptime-label { font-size: 0.82rem; min-width: 150px; color: var(--muted); }
+    .uptime-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+    .uptime-fill { height: 100%; border-radius: 4px; background: var(--green); }
+    .uptime-pct  { font-size: 0.8rem; color: var(--muted); min-width: 44px; text-align: right; }
+    footer { text-align: center; color: var(--muted); font-size: 0.78rem; margin-top: 3rem; }
+    #last-updated { font-size: 0.78rem; color: var(--muted); text-align: center; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>WiFiSense — Status</h1>
+    <p>Disponibilidade em tempo real dos serviços da plataforma</p>
+  </header>
+
+  <div class="overall" id="overall-banner">
+    <div class="overall-dot" id="overall-dot" style="background:var(--green)"></div>
+    <div class="overall-text" id="overall-text">Verificando...</div>
+  </div>
+
+  <p id="last-updated">Atualizando...</p>
+
+  <p class="section-title">Microserviços</p>
+  <div class="services" id="services-list"></div>
+
+  <p class="section-title">Uptime (30 dias)</p>
+  <div class="uptime-bar-wrap" id="uptime-bars"></div>
+
+  <footer>
+    Atualização automática a cada 60 segundos &bull;
+    <a href="https://wifisense.com" style="color:var(--muted)">wifisense.com</a>
+  </footer>
+</div>
+
+<script>
+const SERVICES = [
+  { id: "auth",         name: "Auth Service",         url: "/api/auth/health",         port: 8001 },
+  { id: "tenant",       name: "Tenant Service",        url: "/api/tenant/health",        port: 8002 },
+  { id: "device",       name: "Device Service",        url: "/api/device/health",        port: 8003 },
+  { id: "license",      name: "License Service",       url: "/api/license/health",       port: 8004 },
+  { id: "event",        name: "Event Service",         url: "/api/event/health",         port: 8005 },
+  { id: "notification", name: "Notification Service",  url: "/api/notification/health",  port: 8006 },
+  { id: "billing",      name: "Billing Service",       url: "/api/billing/health",       port: 8007 },
+  { id: "gateway",      name: "API Gateway",           url: "/health",                   port: 80  },
+];
+
+// Uptime simulado — em produção vem da API ou de arquivo gerado pelo monitoramento
+const UPTIME = {
+  auth: 99.95, tenant: 99.98, device: 99.87, license: 99.99,
+  event: 99.91, notification: 99.75, billing: 99.97, gateway: 99.99,
+};
+
+async function checkService(svc) {
+  try {
+    const res = await fetch(svc.url, { signal: AbortSignal.timeout(5000) });
+    return res.ok ? "operational" : "degraded";
+  } catch {
+    return "outage";
+  }
+}
+
+function badgeHTML(status) {
+  const labels = { operational: "Operacional", degraded: "Degradado", outage: "Fora do ar", unknown: "Desconhecido" };
+  return `<span class="badge ${status}"><span class="badge-dot"></span>${labels[status] ?? status}</span>`;
+}
+
+async function refresh() {
+  const list = document.getElementById("services-list");
+  const uptimeBars = document.getElementById("uptime-bars");
+  const overallDot = document.getElementById("overall-dot");
+  const overallText = document.getElementById("overall-text");
+  const lastUpdated = document.getElementById("last-updated");
+
+  const results = await Promise.all(SERVICES.map(async s => ({ ...s, status: await checkService(s) })));
+
+  list.innerHTML = results.map(s => `
+    <div class="service">
+      <div>
+        <div class="service-name">${s.name}</div>
+        <div class="service-meta">Porta ${s.port}</div>
+      </div>
+      ${badgeHTML(s.status)}
+    </div>
+  `).join("");
+
+  uptimeBars.innerHTML = results.map(s => {
+    const pct = UPTIME[s.id] ?? 99.9;
+    return `
+    <div class="uptime-row">
+      <div class="uptime-label">${s.name}</div>
+      <div class="uptime-bar"><div class="uptime-fill" style="width:${pct}%"></div></div>
+      <div class="uptime-pct">${pct}%</div>
+    </div>`;
+  }).join("");
+
+  const hasOutage = results.some(r => r.status === "outage");
+  const hasDegraded = results.some(r => r.status === "degraded");
+  if (hasOutage) {
+    overallDot.style.background = "var(--red)";
+    overallText.textContent = "Incidente em andamento";
+  } else if (hasDegraded) {
+    overallDot.style.background = "var(--yellow)";
+    overallText.textContent = "Desempenho degradado";
+  } else {
+    overallDot.style.background = "var(--green)";
+    overallText.textContent = "Todos os sistemas operacionais";
+  }
+
+  lastUpdated.textContent = "Última atualização: " + new Date().toLocaleString("pt-BR");
+}
+
+refresh();
+setInterval(refresh, 60_000);
+</script>
+</body>
+</html>

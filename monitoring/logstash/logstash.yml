@@ -1,0 +1,11 @@
+# Logstash — Configuração principal
+http.host: "0.0.0.0"
+xpack.monitoring.enabled: false
+
+# Performance
+pipeline.workers: 2
+pipeline.batch.size: 125
+pipeline.batch.delay: 50
+
+# Logs do próprio Logstash
+log.level: warn

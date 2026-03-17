@@ -20,19 +20,22 @@ if not DATABASE_URL:
     # Fallback para SQLite se não houver DATABASE_URL
     _DB_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     DATABASE_URL = f"sqlite+aiosqlite:///{os.path.join(_DB_DIR, 'wifisense.db')}"
-    print("⚠️  DATABASE_URL não encontrada, usando SQLite como fallback")
+    print("[DB] DATABASE_URL nao encontrada, usando SQLite como fallback")
 else:
     # Converter postgresql:// para postgresql+asyncpg:// para suporte assíncrono
     if DATABASE_URL.startswith("postgresql://"):
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-        print(f"✅ Conectando ao PostgreSQL: {DATABASE_URL.split('@')[1]}")
+        print(f"[DB] Conectando ao PostgreSQL: {DATABASE_URL.split('@')[1]}")
 
+_is_sqlite = DATABASE_URL.startswith("sqlite")
 engine = create_async_engine(
-    DATABASE_URL, 
+    DATABASE_URL,
     echo=False,
-    pool_pre_ping=True,  # Verifica conexões antes de usar
-    pool_size=5,  # Tamanho do pool de conexões
-    max_overflow=10  # Conexões extras permitidas
+    **({} if _is_sqlite else {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+    })
 )
 
 async_session = async_sessionmaker(

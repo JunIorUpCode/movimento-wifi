@@ -239,6 +239,90 @@ class MLDetector(DetectorBase):
             )
             return EventType.NO_PRESENCE
 
+    # Diretório seguro onde os modelos são permitidos
+    # Definido como atributo de classe para facilitar testes
+    _MODELS_DIR: Path = Path(__file__).parent.parent.parent / "models"
+
+    def reload_model(self, new_model_path: str | Path) -> bool:
+        """
+        Recarrega o modelo ML a partir de um novo caminho.
+
+        Valida o caminho para prevenir path traversal antes de carregar.
+        Realiza um swap atômico dos atributos internos, garantindo que
+        o loop de monitoramento nunca veja um estado parcial.
+        Limpa o buffer de features para evitar predições com dados
+        de um modelo diferente.
+
+        Args:
+            new_model_path: Nome do arquivo .pkl (ex: 'classifier.pkl').
+                Caminhos com '../' ou separadores de diretório são rejeitados.
+
+        Returns:
+            True se o modelo foi recarregado com sucesso, False caso contrário
+        """
+        import os
+        import re
+
+        # Extrai apenas o nome do arquivo — descarta qualquer diretório informado
+        model_filename = os.path.basename(str(new_model_path))
+
+        # Valida o nome: apenas letras, números, hífen, underscore e ponto
+        if not re.match(r'^[a-zA-Z0-9_\-]+\.pkl$', model_filename):
+            logger.error(
+                f"Nome de modelo inválido rejeitado (path traversal ou caracteres não permitidos): "
+                f"'{new_model_path}'"
+            )
+            return False
+
+        # Constrói caminhos dentro do diretório seguro
+        new_path = self._MODELS_DIR / model_filename
+        new_scaler_path = self._MODELS_DIR / model_filename.replace(".pkl", "_scaler.pkl")
+
+        # Verifica que os caminhos resolvidos não escapam do diretório seguro
+        try:
+            resolved_model = new_path.resolve()
+            resolved_scaler = new_scaler_path.resolve()
+            models_dir_resolved = self._MODELS_DIR.resolve()
+
+            if not str(resolved_model).startswith(str(models_dir_resolved)):
+                logger.error(f"Tentativa de path traversal detectada: '{new_model_path}'")
+                return False
+            if not str(resolved_scaler).startswith(str(models_dir_resolved)):
+                logger.error(f"Tentativa de path traversal no scaler: '{new_model_path}'")
+                return False
+        except Exception as e:
+            logger.error(f"Erro ao resolver caminho do modelo: {e}")
+            return False
+
+        try:
+            # Carrega os novos artefatos antes de substituir os antigos
+            new_model = joblib.load(new_path)
+            new_scaler = joblib.load(new_scaler_path)
+        except FileNotFoundError as e:
+            logger.error(f"Arquivo de modelo não encontrado: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Erro ao carregar novo modelo '{new_path}': {e}")
+            return False
+
+        # Swap atômico — o GIL garante que atribuições simples são indivisíveis
+        # no contexto do event loop asyncio (single-threaded)
+        self._model_path = new_path
+        self._scaler_path = new_scaler_path
+        self._model = new_model
+        self._scaler = new_scaler
+        self._model_loaded = True
+
+        # Limpa buffer: amostras antigas são incompatíveis com o novo scaler
+        self._feature_buffer.clear()
+
+        logger.info(
+            f"✓ Modelo ML recarregado com sucesso: {new_path} "
+            f"| classes: {new_model.classes_} "
+            f"| features: {new_model.n_features_in_}"
+        )
+        return True
+
     def reset(self) -> None:
         """Reseta estado interno do detector."""
         self._feature_buffer.clear()

@@ -1,0 +1,8 @@
+#!/bin/bash
+# prerm — Executado antes da remoção do pacote
+set -e
+
+if command -v systemctl &>/dev/null; then
+    systemctl stop wifisense.service 2>/dev/null || true
+    systemctl disable wifisense.service 2>/dev/null || true
+fi

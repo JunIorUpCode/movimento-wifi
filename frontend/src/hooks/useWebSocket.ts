@@ -1,12 +1,14 @@
-/* Hook de WebSocket com auto-reconnect */
+/* Hook de WebSocket com auto-reconnect e suporte a novos tipos de evento */
 
 import { useEffect, useRef } from 'react';
-import type { LiveUpdate } from '../types';
+import type { LiveUpdate, WsMessage } from '../types';
 import { useStore } from '../store/useStore';
 
 export function useWebSocket() {
   const pushLiveUpdate = useStore((s) => s.pushLiveUpdate);
-  const isMonitoring = useStore((s) => s.isMonitoring);
+  const setCalibrationProgress = useStore((s) => s.setCalibrationProgress);
+  const pushAnomaly = useStore((s) => s.pushAnomaly);
+  const pushEnabled = useStore((s) => s.pushEnabled);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -23,9 +25,40 @@ export function useWebSocket() {
 
       ws.onmessage = (event) => {
         try {
-          const data: LiveUpdate = JSON.parse(event.data);
-          if (data.event_type) {
-            pushLiveUpdate(data);
+          const msg: WsMessage = JSON.parse(event.data);
+
+          // Evento de detecção (estrutura antiga — sem campo 'type')
+          if (!msg.type && 'event_type' in msg) {
+            pushLiveUpdate(msg as LiveUpdate);
+            return;
+          }
+
+          switch (msg.type) {
+            case 'calibration_progress':
+              setCalibrationProgress(msg.data);
+              break;
+
+            case 'anomaly_detected':
+              pushAnomaly(msg.data);
+              // Notificação push no browser (se habilitada)
+              if (pushEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification('WiFiSense — Anomalia detectada', {
+                  body: `${msg.data.event_type} — confiança ${Math.round(msg.data.confidence * 100)}%`,
+                  icon: '/vite.svg',
+                });
+              }
+              break;
+
+            case 'notification_sent':
+              // Disponível para subscribers futuros; sem ação global por enquanto
+              console.log('[WS] Notificação enviada:', msg.data);
+              break;
+
+            default:
+              // Evento de detecção com campo 'type' não reconhecido — tenta como LiveUpdate
+              if ('event_type' in msg) {
+                pushLiveUpdate(msg as unknown as LiveUpdate);
+              }
           }
         } catch {
           // Ignora mensagens inválidas
@@ -51,7 +84,7 @@ export function useWebSocket() {
         wsRef.current.close();
       }
     };
-  }, [pushLiveUpdate]);
+  }, [pushLiveUpdate, setCalibrationProgress, pushAnomaly, pushEnabled]);
 
   return wsRef;
 }

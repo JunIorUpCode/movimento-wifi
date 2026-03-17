@@ -1,0 +1,32 @@
+#!/bin/bash
+# postinst — Executado após instalação do pacote .deb
+set -e
+
+INSTALL_DIR="/opt/wifisense"
+SERVICE_USER="wifisense"
+
+echo "[WiFiSense] Configurando sistema..."
+
+# Cria usuário de serviço (sem shell, sem home)
+if ! id -u "$SERVICE_USER" &>/dev/null; then
+    useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
+fi
+
+# Cria diretórios necessários
+install -d -m 755 -o "$SERVICE_USER" -g "$SERVICE_USER" \
+    "$INSTALL_DIR/data" \
+    "$INSTALL_DIR/logs" \
+    "$INSTALL_DIR/models"
+
+# Instala dependências Python
+pip3 install -r "$INSTALL_DIR/requirements.txt" --quiet 2>/dev/null || true
+
+# Instala e habilita o serviço systemd
+if command -v systemctl &>/dev/null; then
+    systemctl daemon-reload
+    systemctl enable wifisense.service
+    systemctl start wifisense.service
+    echo "[WiFiSense] Serviço iniciado. Acesse: http://localhost:8000"
+fi
+
+echo "[WiFiSense] Instalação concluída!"

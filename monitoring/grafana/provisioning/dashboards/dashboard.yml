@@ -1,0 +1,13 @@
+# Grafana — Provisionamento automático de dashboards
+apiVersion: 1
+
+providers:
+  - name: "WiFiSense Dashboards"
+    orgId: 1
+    folder: "WiFiSense"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

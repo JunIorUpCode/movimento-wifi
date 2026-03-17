@@ -1,0 +1,51 @@
+# config.yaml.example — Exemplo de configuração YAML para o WiFiSense SaaS
+#
+# Copie este arquivo para config.yaml e ajuste os valores.
+# Variáveis de ambiente e .env têm PRECEDÊNCIA sobre este arquivo.
+#
+# Especifique o caminho com a variável CONFIG_FILE:
+#   CONFIG_FILE=/etc/wifisense/config.yaml
+
+# ── Banco de dados ─────────────────────────────────────────────────────────
+database_host: localhost
+database_port: 5432
+database_user: wifisense
+database_password: wifisense_password
+database_name: wifisense_saas
+
+# ── Redis ──────────────────────────────────────────────────────────────────
+redis_host: localhost
+redis_port: 6379
+# redis_password: null
+redis_db: 0
+
+# ── RabbitMQ ───────────────────────────────────────────────────────────────
+rabbitmq_host: localhost
+rabbitmq_port: 5672
+rabbitmq_user: wifisense
+rabbitmq_password: wifisense_password
+rabbitmq_vhost: /
+
+# ── Autenticação JWT ───────────────────────────────────────────────────────
+jwt_secret_key: TROQUE-PARA-PRODUCAO
+jwt_algorithm: HS256
+jwt_expiration_hours: 24
+
+# ── Aplicação ──────────────────────────────────────────────────────────────
+app_name: WiFiSense SaaS
+app_version: 1.0.0
+debug: false
+log_level: INFO
+
+# ── CORS ───────────────────────────────────────────────────────────────────
+cors_origins: "http://localhost:3000,http://localhost:5173"
+
+# ── Segurança ──────────────────────────────────────────────────────────────
+# encryption_key: gere com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+encryption_key: TROQUE-PARA-PRODUCAO
+bcrypt_rounds: 12
+rate_limit_per_minute: 100
+rate_limit_per_hour: 1000
+
+# ── Billing ────────────────────────────────────────────────────────────────
+stripe_api_key: sk_test_change_me

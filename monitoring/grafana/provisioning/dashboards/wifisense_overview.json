@@ -1,0 +1,120 @@
+{
+  "title": "WiFiSense — Visão Geral",
+  "uid": "wifisense-overview",
+  "version": 1,
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "tags": ["wifisense"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Serviços Online",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [
+        {
+          "expr": "count(up{job=~\"auth-service|tenant-service|device-service|license-service|event-service|notification-service|billing-service\"} == 1)",
+          "legendFormat": "Online"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "thresholds": {
+          "steps": [
+            { "value": null, "color": "red" },
+            { "value": 4, "color": "yellow" },
+            { "value": 7, "color": "green" }
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Requisições por segundo (total)",
+      "type": "timeseries",
+      "gridPos": { "x": 4, "y": 0, "w": 10, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (job)",
+          "legendFormat": "{{ job }}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Taxa de erro HTTP 5xx (%)",
+      "type": "timeseries",
+      "gridPos": { "x": 14, "y": 0, "w": 10, "h": 8 },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(http_requests_total{status=~\"5..\"}[1m])) by (job) / sum(rate(http_requests_total[1m])) by (job)",
+          "legendFormat": "{{ job }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 1, "color": "yellow" },
+              { "value": 5, "color": "red" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Latência P95 por serviço (ms)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (job, le)) * 1000",
+          "legendFormat": "{{ job }} p95"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 5,
+      "title": "Memória Redis",
+      "type": "gauge",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "expr": "100 * redis_memory_used_bytes / redis_memory_max_bytes",
+          "legendFormat": "Redis %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 70, "color": "yellow" },
+              { "value": 90, "color": "red" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Mensagens na fila RabbitMQ",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rabbitmq_queue_messages)",
+          "legendFormat": "Mensagens pendentes"
+        }
+      ]
+    }
+  ]
+}

@@ -5,6 +5,13 @@ import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { History } from './pages/History';
 import { Settings } from './pages/Settings';
+import { Calibration } from './pages/Calibration';
+import { Statistics } from './pages/Statistics';
+import { Notifications } from './pages/Notifications';
+import { Zones } from './pages/Zones';
+import { MLCollection } from './pages/MLCollection';
+import { PushNotifications } from './pages/PushNotifications';
+import { Replay } from './pages/Replay';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useStore } from './store/useStore';
 
@@ -16,14 +23,17 @@ function App() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'history':
-        return <History />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <Dashboard />;
+      case 'dashboard':       return <Dashboard />;
+      case 'history':         return <History />;
+      case 'calibration':     return <Calibration />;
+      case 'statistics':      return <Statistics />;
+      case 'notifications':   return <Notifications />;
+      case 'zones':           return <Zones />;
+      case 'ml':              return <MLCollection />;
+      case 'pushnotifications': return <PushNotifications />;
+      case 'replay':          return <Replay />;
+      case 'settings':        return <Settings />;
+      default:                return <Dashboard />;
     }
   };
 

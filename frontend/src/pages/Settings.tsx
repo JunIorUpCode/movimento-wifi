@@ -6,16 +6,36 @@ import { useStore } from '../store/useStore';
 import type { AppConfig } from '../types';
 import { Save, RotateCcw } from 'lucide-react';
 
+interface ProvidersAvailability {
+  csi: boolean;
+  rssi_windows: boolean;
+  rssi_linux: boolean;
+  mock: boolean;
+}
+
 export function Settings() {
   const config = useStore((s) => s.config);
   const setConfig = useStore((s) => s.setConfig);
   const [local, setLocal] = useState<AppConfig>(config);
   const [saved, setSaved] = useState(false);
+  const [providers, setProviders] = useState<ProvidersAvailability>({
+    csi: false, rssi_windows: false, rssi_linux: false, mock: true,
+  });
 
   useEffect(() => {
     api.getConfig().then((c) => {
       setConfig(c);
       setLocal(c);
+    });
+    // Detecta OS para habilitar providers disponíveis
+    // RssiWindowsProvider.is_available() sempre retorna True no Windows
+    const isWindows = navigator.platform.toLowerCase().includes('win')
+      || navigator.userAgent.toLowerCase().includes('windows');
+    setProviders({
+      csi: false,         // CSI requer hardware especial
+      rssi_windows: isWindows,
+      rssi_linux: !isWindows,
+      mock: true,
     });
   }, [setConfig]);
 
@@ -118,10 +138,22 @@ export function Settings() {
             onChange={(e) => setLocal({ ...local, active_provider: e.target.value })}
           >
             <option value="mock">Simulador (Mock)</option>
-            <option value="rssi" disabled>RSSI Real (não disponível)</option>
-            <option value="csi" disabled>CSI Real (não disponível)</option>
+            {(providers.rssi_windows || providers.rssi_linux) && (
+              <option value="rssi_windows">
+                RSSI Real {providers.rssi_windows ? '(Windows — disponível)' : '(Linux — disponível)'}
+              </option>
+            )}
+            {providers.csi && (
+              <option value="csi">CSI Real (disponível)</option>
+            )}
+            {!providers.rssi_windows && !providers.rssi_linux && (
+              <option value="rssi" disabled>RSSI Real (não detectado)</option>
+            )}
+            {!providers.csi && (
+              <option value="csi_placeholder" disabled>CSI Real (hardware não conectado)</option>
+            )}
           </select>
-          <p className="setting-desc">Fonte de dados de sinal Wi-Fi.</p>
+          <p className="setting-desc">Fonte de dados de sinal Wi-Fi. Após salvar, reinicie o monitor.</p>
         </div>
       </div>
 

@@ -1,0 +1,43 @@
+{
+  "name": "WiFiSense Local",
+  "short_name": "WiFiSense",
+  "description": "Monitoramento de presença e detecção de quedas via sinais Wi-Fi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Painel",
+      "short_name": "Painel",
+      "description": "Abre o painel principal",
+      "url": "/?page=dashboard",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Histórico",
+      "short_name": "Histórico",
+      "description": "Visualiza histórico de eventos",
+      "url": "/?page=history",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["utilities", "health", "security"],
+  "screenshots": []
+}

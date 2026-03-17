@@ -18,5 +18,11 @@ aioredis==2.0.1
 # Logging
 python-json-logger==2.0.7
 
+# Config YAML
+PyYAML==6.0.2
+
+# Encryption
+cryptography==43.0.3
+
 # Async
 asyncio==3.4.3

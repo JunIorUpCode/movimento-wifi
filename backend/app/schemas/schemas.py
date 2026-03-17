@@ -169,3 +169,99 @@ class NotificationTestRequest(BaseModel):
     """Request para testar notificações."""
     channel: str = Field(..., description="Canal a testar: telegram, whatsapp, webhook")
     message: str = Field(default="Teste de notificação WiFiSense", description="Mensagem de teste")
+
+
+# --- Calibração ---
+
+class CalibrationStartIn(BaseModel):
+    """Request para iniciar calibração."""
+    duration_seconds: int = Field(default=60, ge=10, le=300, description="Duração da calibração em segundos")
+    profile_name: str = Field(default="default", min_length=1, max_length=100, description="Nome do perfil de calibração")
+
+
+class CalibrationProfileOut(BaseModel):
+    """Perfil de calibração salvo."""
+    id: int
+    name: str
+    baseline_json: str
+    created_at: datetime
+    updated_at: Optional[datetime]
+    is_active: bool
+
+    model_config = {"from_attributes": True}
+
+
+# --- Zonas ---
+
+class ZoneIn(BaseModel):
+    """Request para criar/atualizar zona."""
+    name: str = Field(..., min_length=1, max_length=100, description="Nome da zona")
+    rssi_min: float = Field(..., description="RSSI mínimo da zona (dBm)")
+    rssi_max: float = Field(..., description="RSSI máximo da zona (dBm)")
+    alert_config_json: str = Field(default="{}", description="Configuração de alertas em JSON")
+
+
+class ZoneOut(BaseModel):
+    """Zona de monitoramento."""
+    id: int
+    name: str
+    rssi_min: float
+    rssi_max: float
+    alert_config_json: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# --- Estatísticas ---
+
+class EventStatsOut(BaseModel):
+    """Estatísticas agregadas de eventos."""
+    total_events: int
+    by_type: dict[str, int]
+    avg_confidence: float
+    period_hours: int
+
+
+class BehaviorPatternOut(BaseModel):
+    """Padrão comportamental aprendido."""
+    id: int
+    hour_of_day: int
+    day_of_week: int
+    presence_probability: float
+    avg_movement_level: float
+    sample_count: int
+    last_updated: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PerformanceStatsOut(BaseModel):
+    """Estatísticas de performance do sistema."""
+    avg_total_latency_ms: float
+    avg_capture_time_ms: float
+    avg_processing_time_ms: float
+    avg_detection_time_ms: float
+    avg_memory_usage_mb: float
+    avg_cpu_usage_percent: float
+    samples_count: int
+
+
+# --- Coleta ML ---
+
+class MLCollectionStatusOut(BaseModel):
+    """Status da coleta de dados ML."""
+    is_collecting: bool
+    total_samples: int
+    pending_features: int
+    label_distribution: dict[str, int]
+    models_dir: str
+
+
+class MLLabelIn(BaseModel):
+    """Request para rotular evento."""
+    label: str = Field(
+        ...,
+        description="Rótulo: no_presence, presence_still, presence_moving, fall_suspected, prolonged_inactivity",
+    )
+    window_seconds: int = Field(default=10, ge=1, le=60, description="Janela de tempo em segundos para rotular")

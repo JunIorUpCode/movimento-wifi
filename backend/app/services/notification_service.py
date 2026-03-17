@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime
 from typing import Dict, Optional
@@ -61,10 +62,10 @@ class NotificationService:
             return
         
         self._initialized = True
-        self._config = config or NotificationConfig()
+        self._config = config or self._load_config_from_env()
         self._channels: Dict[str, NotificationChannel] = {}
         self._last_notification: Dict[str, float] = {}
-        
+
         # Setup inicial de canais
         self._setup_channels()
         
@@ -73,9 +74,30 @@ class NotificationService:
             f"{list(self._channels.keys())}"
         )
     
+    @staticmethod
+    def _load_config_from_env() -> NotificationConfig:
+        """Carrega configuração de notificação das variáveis de ambiente."""
+        channels = []
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        raw_ids = os.getenv("TELEGRAM_CHAT_IDS", "").strip()
+        chat_ids = [c.strip() for c in raw_ids.split(",") if c.strip()] if raw_ids else []
+
+        if bot_token and chat_ids:
+            channels.append("telegram")
+            logger.info(f"[NotificationService] Telegram carregado do .env ({len(chat_ids)} chat(s))")
+
+        return NotificationConfig(
+            enabled=True,
+            channels=channels,
+            telegram_bot_token=bot_token or None,
+            telegram_chat_ids=chat_ids,
+            min_confidence=float(os.getenv("NOTIFICATION_MIN_CONFIDENCE", "0.7")),
+            cooldown_seconds=int(os.getenv("NOTIFICATION_COOLDOWN", "300")),
+        )
+
     def _setup_channels(self) -> None:
         """Configura canais de notificação baseado na configuração.
-        
+
         Instancia canais apenas se estiverem configurados corretamente:
         - Telegram: requer bot_token e chat_ids
         - WhatsApp: requer account_sid, auth_token, from_number e recipients
@@ -383,7 +405,24 @@ class NotificationService:
         except Exception as e:
             # Não propaga exceção para não interromper fluxo de notificações
             logger.error(f"Failed to save notification log: {e}", exc_info=True)
-    
+
+        # Broadcast WebSocket — import tardio para evitar dependência circular
+        try:
+            from app.services.monitor_service import monitor_service  # noqa: PLC0415
+            import asyncio as _asyncio
+            if _asyncio.get_event_loop().is_running():
+                _asyncio.ensure_future(
+                    monitor_service.broadcast_notification_sent(
+                        channel=channel,
+                        event_type=event_type,
+                        confidence=confidence,
+                        success=success,
+                        recipient=recipient,
+                    )
+                )
+        except Exception as _ws_err:
+            logger.debug(f"Broadcast WebSocket de notificação falhou (não crítico): {_ws_err}")
+
     def update_config(self, config: NotificationConfig) -> None:
         """Atualiza configuração e reconstrói canais.
         

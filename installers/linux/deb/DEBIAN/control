@@ -1,0 +1,13 @@
+Package: wifisense-local
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: python3 (>= 3.11), python3-pip, libssl-dev
+Maintainer: WiFiSense <contato@wifisense.com>
+Homepage: https://wifisense.com
+Description: WiFiSense Local — Detecção de presença via Wi-Fi
+ Sistema de monitoramento de presença e detecção de quedas
+ utilizando análise de sinais Wi-Fi (RSSI/CSI) sem câmeras.
+ .
+ Inclui backend FastAPI, modelo ML e dashboard web local.

@@ -365,6 +365,175 @@ services:
       - wifisense-network
     restart: unless-stopped
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # MONITORAMENTO — Prometheus + Grafana + ELK Stack
+  # ─────────────────────────────────────────────────────────────────────────
+
+  # Prometheus — coleta de métricas
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: wifisense-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana — dashboards de métricas
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: wifisense-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: wifisense_grafana
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "http://localhost:3001"
+      GF_INSTALL_PLUGINS: ""
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Exportador PostgreSQL para Prometheus
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: wifisense-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://wifisense:wifisense_password@postgres:5432/wifisense_saas?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Exportador Redis para Prometheus
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.60.0
+    container_name: wifisense-redis-exporter
+    environment:
+      REDIS_ADDR: "redis:6379"
+      REDIS_PASSWORD: "wifisense_redis_password"
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Exportador Nginx para Prometheus
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.1.0
+    container_name: wifisense-nginx-exporter
+    command:
+      - "--nginx.scrape-uri=http://api-gateway/nginx_status"
+    ports:
+      - "9113:9113"
+    depends_on:
+      - api-gateway
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # ── ELK Stack ──────────────────────────────────────────────────────────
+
+  # Elasticsearch — armazenamento de logs
+  elasticsearch:
+    image: elasticsearch:8.13.0
+    container_name: wifisense-elasticsearch
+    environment:
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./monitoring/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Logstash — processamento de logs
+  logstash:
+    image: logstash:8.13.0
+    container_name: wifisense-logstash
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    ports:
+      - "5044:5044"   # Beats input
+      - "5000:5000"   # TCP input (JSON)
+      - "9600:9600"   # API Logstash
+    volumes:
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./monitoring/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+
+  # Kibana — visualização de logs
+  kibana:
+    image: kibana:8.13.0
+    container_name: wifisense-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      KIBANA_SYSTEM_PASSWORD: ""
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - wifisense-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5601/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 networks:
   wifisense-network:
     driver: bridge
@@ -379,3 +548,9 @@ volumes:
     name: wifisense-rabbitmq-data
   gateway_logs:
     name: wifisense-gateway-logs
+  prometheus_data:
+    name: wifisense-prometheus-data
+  grafana_data:
+    name: wifisense-grafana-data
+  elasticsearch_data:
+    name: wifisense-elasticsearch-data

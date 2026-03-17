@@ -109,3 +109,135 @@ export const SIMULATION_LABELS: Record<SimulationMode, string> = {
   post_fall_inactivity: 'Imobilidade Pós-Queda',
   random: 'Aleatório',
 };
+
+/* Calibração */
+export interface CalibrationProfile {
+  id: number;
+  name: string;
+  baseline_json: string;
+  created_at: string;
+  updated_at: string | null;
+  is_active: boolean;
+}
+
+export interface CalibrationProgress {
+  running: boolean;
+  profile_name: string | null;
+  duration_seconds: number;
+  elapsed_seconds: number | null;
+  error: string | null;
+  result: {
+    mean_rssi: number;
+    std_rssi: number;
+    mean_variance: number;
+    noise_floor: number;
+    samples_count: number;
+  } | null;
+}
+
+/* Zonas */
+export interface Zone {
+  id: number;
+  name: string;
+  rssi_min: number;
+  rssi_max: number;
+  alert_config_json: string;
+  created_at: string;
+}
+
+/* Estatísticas */
+export interface EventStats {
+  total_events: number;
+  by_type: Record<string, number>;
+  avg_confidence: number;
+  period_hours: number;
+}
+
+export interface BehaviorPattern {
+  id: number;
+  hour_of_day: number;
+  day_of_week: number;
+  presence_probability: number;
+  avg_movement_level: number;
+  sample_count: number;
+  last_updated: string;
+}
+
+export interface PerformanceStats {
+  avg_total_latency_ms: number;
+  avg_capture_time_ms: number;
+  avg_processing_time_ms: number;
+  avg_detection_time_ms: number;
+  avg_memory_usage_mb: number;
+  avg_cpu_usage_percent: number;
+  samples_count: number;
+}
+
+export interface AnomalyRecord {
+  id: number;
+  timestamp: string;
+  event_type: string;
+  confidence: number;
+  provider: string;
+}
+
+/* ML */
+export interface MLCollectionStatus {
+  is_collecting: boolean;
+  total_samples: number;
+  pending_features: number;
+  label_distribution: Record<string, number>;
+  models_dir: string;
+}
+
+/* Notificações */
+export interface NotificationLog {
+  id: number;
+  timestamp: string;
+  channel: string;
+  event_type: string;
+  confidence: number;
+  recipient: string;
+  success: boolean;
+  error_message: string | null;
+  alert_data: string;
+}
+
+/* WebSocket — novos tipos de evento */
+export interface WsCalibrationProgress {
+  type: 'calibration_progress';
+  data: {
+    profile_name: string;
+    elapsed_seconds: number;
+    duration_seconds: number;
+    progress_percent: number;
+    phase: 'collecting' | 'calculating' | 'done' | 'error';
+  };
+}
+
+export interface WsNotificationSent {
+  type: 'notification_sent';
+  data: {
+    channel: string;
+    event_type: string;
+    confidence: number;
+    success: boolean;
+    recipient: string;
+  };
+}
+
+export interface WsAnomalyDetected {
+  type: 'anomaly_detected';
+  data: {
+    event_type: string;
+    confidence: number;
+    timestamp: number;
+    details: Record<string, unknown>;
+  };
+}
+
+export type WsMessage =
+  | (LiveUpdate & { type?: undefined })
+  | WsCalibrationProgress
+  | WsNotificationSent
+  | WsAnomalyDetected;

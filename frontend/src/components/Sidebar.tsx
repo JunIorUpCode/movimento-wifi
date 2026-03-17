@@ -1,12 +1,30 @@
 /* Sidebar — Navegação lateral */
 
-import { LayoutDashboard, History, Settings } from 'lucide-react';
-import { useStore } from '../store/useStore';
+import {
+  LayoutDashboard,
+  History,
+  Settings,
+  SlidersHorizontal,
+  BarChart2,
+  Bell,
+  MapPin,
+  Brain,
+  BellRing,
+  Play,
+} from 'lucide-react';
+import { useStore, type PageId } from '../store/useStore';
 
-const NAV_ITEMS = [
-  { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'history' as const, label: 'Histórico', icon: History },
-  { id: 'settings' as const, label: 'Configurações', icon: Settings },
+const NAV_ITEMS: { id: PageId; label: string; icon: React.ElementType; group?: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'history', label: 'Histórico', icon: History },
+  { id: 'replay', label: 'Replay', icon: Play },
+  { id: 'statistics', label: 'Estatísticas', icon: BarChart2, group: 'Análise' },
+  { id: 'calibration', label: 'Calibração', icon: SlidersHorizontal },
+  { id: 'zones', label: 'Zonas', icon: MapPin },
+  { id: 'ml', label: 'Coleta ML', icon: Brain, group: 'ML' },
+  { id: 'notifications', label: 'Notificações', icon: Bell, group: 'Alertas' },
+  { id: 'pushnotifications', label: 'Push Browser', icon: BellRing },
+  { id: 'settings', label: 'Configurações', icon: Settings, group: 'Sistema' },
 ];
 
 export function Sidebar() {
@@ -20,9 +38,9 @@ export function Sidebar() {
           <button
             key={item.id}
             className={`sidebar-item ${activePage === item.id ? 'active' : ''}`}
-            onClick={() => setActivePage(item.id)}
+            onClick={() => setActivePage(item.id as PageId)}
           >
-            <item.icon size={20} />
+            <item.icon size={18} />
             <span>{item.label}</span>
           </button>
         ))}

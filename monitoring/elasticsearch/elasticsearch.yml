@@ -1,0 +1,18 @@
+# Elasticsearch — Configuração para ambiente single-node (dev/produção única instância)
+cluster.name: wifisense-logs
+node.name: wifisense-es01
+
+# Descoberta (single node)
+discovery.type: single-node
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# Memória
+bootstrap.memory_lock: false
+
+# Índices
+action.auto_create_index: ".monitoring-*,.watches,.triggered_watches,.watcher-history-*,.ml-*,wifisense-*"
+
+# Retenção (índices de log com máximo de 7 dias via ILM)
+# Configure ILM via Kibana → Stack Management → Index Lifecycle Policies

@@ -1,0 +1,113 @@
+# Prometheus — Configuração de coleta de métricas do WiFiSense SaaS
+# Intervalo de coleta: 15s | Timeout: 10s
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    project: "wifisense"
+    environment: "production"
+
+# ── Regras de alerta ────────────────────────────────────────────────────────
+rule_files:
+  - "rules/*.yml"
+
+# ── Alertmanager ────────────────────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []  # adicione alertmanager:9093 quando configurar alertas
+
+# ── Jobs de coleta ───────────────────────────────────────────────────────────
+scrape_configs:
+
+  # Prometheus auto-monitoramento
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── Microserviços WiFiSense ─────────────────────────────────────────────
+  - job_name: "auth-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["auth-service:8000"]
+        labels:
+          service: "auth"
+
+  - job_name: "tenant-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["tenant-service:8000"]
+        labels:
+          service: "tenant"
+
+  - job_name: "device-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["device-service:8000"]
+        labels:
+          service: "device"
+
+  - job_name: "license-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["license-service:8000"]
+        labels:
+          service: "license"
+
+  - job_name: "event-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["event-service:8000"]
+        labels:
+          service: "event"
+
+  - job_name: "notification-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["notification-service:8000"]
+        labels:
+          service: "notification"
+
+  - job_name: "billing-service"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["billing-service:8000"]
+        labels:
+          service: "billing"
+
+  # Backend local (WiFiSense Local)
+  - job_name: "wifisense-local"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          service: "local-backend"
+
+  # ── Infraestrutura ─────────────────────────────────────────────────────
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: "postgresql"
+
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service: "redis"
+
+  - job_name: "rabbitmq"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["rabbitmq:15692"]
+        labels:
+          service: "rabbitmq"
+
+  - job_name: "nginx"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+        labels:
+          service: "api-gateway"
